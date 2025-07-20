@@ -92,6 +92,25 @@ void print_key(char *name, unsigned char *data)
 	printf("\n");
 }
 
+void print_key_cserial(char *name, unsigned char *data)
+{
+	int i = 0;
+	printf("%s: ", name);
+	for (i = 0; i < 12; i++)
+		printf("%c", data[i]);
+	printf("\n");
+}
+
+void print_key_mserial(char *name, unsigned char *data)
+{
+	int i = 0;
+	printf("%s: ", name);
+	for (i = 0; i < 12; i++)
+		printf("%02x", data[i]);
+	printf("\n");
+}
+
+
 int cpu_get_key(unsigned char *data)
 {
 	*(unsigned long long*)&data[0] = xenon_secotp_read_line(3) | xenon_secotp_read_line(4);
@@ -212,13 +231,16 @@ int kv_get_dvd_key(unsigned char *dvd_key)
 	int keylen = 0x10;
 
 	result = kv_read(buffer, 0);
-        if (result == 2 && get_virtual_cpukey(tmp) == 0){
-            printf("! Attempting to decrypt DVDKey with Virtual CPU Key !\n");
+        if (result == 2 && get_virtual_cpukey(tmp) == 0)
+	{
+            printf("! Attempting to decrypt DVD Key with Virtual CPU Key !\n");
             result = kv_read(buffer, 1);
         }
-	if (result != 0){
+	if (result != 0)
+	{
 		printf(" ! kv_get_dvd_key Failure: kv_read\n");
-		if (result == 2){ //Hash failure
+		if (result == 2) //Hash failure
+		{
 			printf(" !   the hash check failed probably as a result of decryption failure\n");
 			printf(" !   make sure that the CORRECT key vault for this console is in flash\n");
 			printf(" !   the key vault should be at offset 0x4200 for a length of 0x4200\n");
@@ -230,6 +252,84 @@ int kv_get_dvd_key(unsigned char *dvd_key)
 	result = kv_get_key(XEKEY_DVD_KEY, dvd_key, &keylen, buffer);
 	if (result != 0){
 		printf(" ! kv_get_dvd_key Failure: kv_get_key %d\n", result);
+		return result;
+	}
+
+	//print_key("dvd key", dvd_key);
+	return 0;
+
+}
+
+int kv_get_cserial(unsigned char *cserial)
+{
+	if (KV_FLASH_SIZE == 0)
+		return -1; //It's bad data!
+	unsigned char buffer[KV_FLASH_SIZE], tmp[0x0C];
+	int result = 0;
+	int keylen = 0x0C;
+
+	result = kv_read(buffer, 0);
+	if (result == 2 && get_virtual_cpukey(tmp) == 0)
+	{
+		printf("! Attempting to decrypt CSerial with Virtual CPU Key !\n");
+		result = kv_read(buffer, 1);
+	}
+	if (result != 0)
+	{
+		printf(" ! kv_get_cserial Failure: kv_read\n");
+		if (result == 2) //Hash failure
+		{
+			printf(" !   the hash check failed probably as a result of decryption failure\n");
+			printf(" !   make sure that the CORRECT key vault for this console is in flash\n");
+			printf(" !   the key vault should be at offset 0x4200 for a length of 0x4200\n");
+			printf(" !   in the 'raw' flash binary from THIS console\n");
+		}
+		return 1;
+	}
+
+	result = kv_get_key(XEKEY_CONSOLE_SERIAL_NUMBER, cserial, &keylen, buffer);
+	if (result != 0)
+	{
+		printf(" ! kv_get_cserial Failure: kv_get_key %d\n", result);
+		return result;
+	}
+
+	//print_key("dvd key", dvd_key);
+	return 0;
+
+}
+
+int kv_get_mserial(unsigned char *mserial)
+{
+	if (KV_FLASH_SIZE == 0)
+		return -1; //It's bad data!
+	unsigned char buffer[KV_FLASH_SIZE], tmp[0x0C];
+	int result = 0;
+	int keylen = 0x0C;
+
+	result = kv_read(buffer, 0);
+	if (result == 2 && get_virtual_cpukey(tmp) == 0)
+	{
+		printf("! Attempting to decrypt MSerial with Virtual CPU Key !\n");
+		result = kv_read(buffer, 1);
+	}
+	if (result != 0)
+	{
+		printf(" ! kv_get_mserial Failure: kv_read\n");
+		if (result == 2) //Hash failure
+		{
+			printf(" !   the hash check failed probably as a result of decryption failure\n");
+			printf(" !   make sure that the CORRECT key vault for this console is in flash\n");
+			printf(" !   the key vault should be at offset 0x4200 for a length of 0x4200\n");
+			printf(" !   in the 'raw' flash binary from THIS console\n");
+		}
+		return 1;
+	}
+
+	result = kv_get_key(XEKEY_MOBO_SERIAL_NUMBER, mserial, &keylen, buffer);
+	if (result != 0)
+	{
+		printf(" ! kv_get_mserial Failure: kv_get_key %d\n", result);
 		return result;
 	}
 
